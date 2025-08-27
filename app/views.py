@@ -1,4 +1,4 @@
-from . import app, models, USERS
+from . import app, models, USERS, POSTS
 from flask import request, Response
 from http import HTTPStatus
 import json
@@ -70,3 +70,66 @@ def get_user(user_id):
         mimetype="application/json",
     )
     return response
+
+
+@app.post("/posts/create")
+def create_post():
+    data = request.get_json()
+    author_id = data["author_id"]
+    text = data["text"]
+    id = len(POSTS)
+
+    if not models.User.is_valid_author_id(author_id):
+        return Response("Author with this id doesn't exist", HTTPStatus.NOT_FOUND)
+
+    if len(text) == 0:
+        return Response("You need to enter some text", HTTPStatus.BAD_REQUEST)
+
+    post = models.Post(id, author_id, text)
+    POSTS.append(post)
+
+    response = Response(
+        json.dumps(
+            {
+                "id": post.id,
+                "author_id": post.author_id,
+                "text": post.text,
+                "reactions": post.reactions,
+            }
+        ),
+        mimetype="application/json",
+        status=HTTPStatus.CREATED,
+    )
+    return response
+
+
+@app.get("/posts/<int:post_id>")
+def get_post(post_id):
+    if not models.Post.is_valid_post_id(post_id):
+        return Response("This post doesn't exist", HTTPStatus.BAD_REQUEST)
+    post = POSTS[post_id]  # if we cant delete posts # todo: check it
+    response = Response(
+        json.dumps(
+            {
+                "id": post.id,
+                "author_id": post.author_id,
+                "text": post.text,
+                "reactions": post.reactions,
+            }
+        ),
+        mimetype="application/json",
+        status=HTTPStatus.OK,
+    )
+    return response
+
+
+# @app.post("/posts/<int:post_id>/reaction")
+# def add_reaction(post_id, reaction):
+#     data = request.get_json()
+#     user_id = data["user_id"]
+#     reaction = data["reaction"]
+#
+#     models.Post.add_reaction(user_id, reaction)
+#
+#     response = Response(HTTPStatus.CREATED)
+#     return response

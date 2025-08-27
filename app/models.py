@@ -1,4 +1,4 @@
-from . import USERS
+from . import USERS, POSTS
 
 
 class User:
@@ -33,3 +33,26 @@ class User:
             # not a valid (or deliverable) email address.
             print(str(e))
             return False
+
+    @staticmethod
+    def is_valid_author_id(author_id):
+        if author_id < 0 or author_id >= len(USERS):
+            return False
+        return True
+
+
+class Post:
+    def __init__(self, id, author_id, text, reactions=None):
+        self.id = id
+        self.author_id = author_id
+        self.text = text
+        self.reactions = [] if reactions is None else reactions
+
+    @staticmethod
+    def is_valid_post_id(post_id):
+        if post_id < 0 or post_id >= len(POSTS):
+            return False
+        return True
+
+    # def add_reaction(self, reaction):
+    # self.reactions
