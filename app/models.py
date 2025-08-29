@@ -2,20 +2,17 @@ from . import USERS, POSTS
 
 
 class User:
-    # todo: check email phone and do user class
     def __init__(self, id, first_name, last_name, email, posts=None, total_reactions=0):
         self.id = id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
         self.posts = [] if posts is None else posts
-        self.total_reactions = total_reactions
+        self.total_reactions = total_reactions  # total_reactions у пользователя = сколько реакций ПОЛУЧИЛИ все его посты от других пользователей.
 
     @staticmethod
     def is_valid_id(user_id):
-        if user_id >= len(USERS) or user_id < 0:
-            return False
-        return True
+        return isinstance(user_id, int) and 0 <= user_id < len(USERS)
 
     @staticmethod
     def check_email_validity(email):
@@ -36,9 +33,10 @@ class User:
 
     @staticmethod
     def is_valid_author_id(author_id):
-        if author_id < 0 or author_id >= len(USERS):
-            return False
-        return True
+        return isinstance(author_id, int) and 0 <= author_id < len(USERS)
+
+    def change_total_reactions(self, amount):
+        self.total_reactions += amount
 
 
 class Post:
@@ -50,9 +48,28 @@ class Post:
 
     @staticmethod
     def is_valid_post_id(post_id):
-        if post_id < 0 or post_id >= len(POSTS):
-            return False
-        return True
+        return isinstance(post_id, int) and 0 <= post_id < len(POSTS)
 
-    # def add_reaction(self, reaction):
-    # self.reactions
+    def add_or_update_reaction(self, user_id, reaction):
+        reaction = str(reaction).lower()
+
+        for r in self.reactions:
+            if r["user_id"] == user_id:
+                if r["reaction"] == reaction:
+                    return "noop"
+                r["reaction"] = reaction
+                return "updated"
+        self.reactions.append({"user_id": user_id, "reaction": reaction})
+        return "new"
+
+    @staticmethod
+    def is_valid_reaction(reaction):
+        return str(reaction).lower() in [
+            "heart",
+            "like",
+            "dislike",
+            "boom",
+            "angry",
+            "haha",
+            "wow",
+        ]
