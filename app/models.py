@@ -73,3 +73,6 @@ class Post:
             "haha",
             "wow",
         ]
+
+    def reactions_counter(self):
+        return len(self.reactions)

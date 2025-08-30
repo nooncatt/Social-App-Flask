@@ -93,8 +93,8 @@ def create_post():
                 "id": post.id,
                 "author_id": post.author_id,
                 "text": post.text,
-                "reactions": post.reactions,  # todo: check how it looks
-            }  # "reactions": [r["reaction"] for r in post.reactions]
+                "reactions": [r["reaction"] for r in post.reactions],
+            }
         ),
         mimetype="application/json",
         status=HTTPStatus.CREATED,
@@ -113,7 +113,7 @@ def get_post(post_id):
                 "id": post.id,
                 "author_id": post.author_id,
                 "text": post.text,
-                "reactions": post.reactions,
+                "reactions": [r["reaction"] for r in post.reactions],
             }
         ),
         mimetype="application/json",
@@ -147,3 +147,95 @@ def add_reaction(post_id):
         author.change_total_reactions(1)
 
     return Response(status=HTTPStatus.NO_CONTENT)
+
+
+@app.get("/users/<int:user_id>/posts")
+def get_user_posts(user_id):
+
+    sort_param = request.args.get("sort")  # asc - по возрастанию, desc - по убыванию
+
+    if sort_param not in {"asc", "desc"}:
+        return Response("Invalid sort (use asc/desc)", HTTPStatus.BAD_REQUEST)
+
+    reverse = sort_param != "asc"
+
+    if not models.User.is_valid_id(user_id):
+        return Response("User with this id doesn't exist", HTTPStatus.NOT_FOUND)
+
+    user = USERS[user_id]
+
+    posts = [POSTS[p_id] for p_id in user.posts if models.Post.is_valid_post_id(p_id)]
+
+    posts.sort(key=lambda p: p.reactions_counter(), reverse=reverse)
+
+    payload = {
+        "posts": [
+            {
+                "id": p.id,
+                "author_id": p.author_id,
+                "text": p.text,
+                "reactions": [r["reaction"] for r in p.reactions],
+            }
+            for p in posts
+        ]
+    }
+
+    response = Response(
+        json.dumps(payload),
+        mimetype="application/json",
+        status=HTTPStatus.OK,
+    )
+
+    return response
+
+
+@app.get("/users/leaderboard")
+def get_users_sorted_leaderboard():  # asc - по возрастанию, desc - по убыванию
+
+    data_type = request.args.get("type")  # "list"
+    sort_param = request.args.get("sort")  # "asc/desc"
+
+    if len(USERS) == 0:
+        return Response("No users on platform", HTTPStatus.NOT_FOUND)
+
+    if data_type != "list":
+        return Response("Invalid data type", HTTPStatus.BAD_REQUEST)
+
+    if sort_param not in {"asc", "desc"}:
+        return Response("Invalid sort (use asc/desc)", HTTPStatus.BAD_REQUEST)
+
+    reverse = sort_param != "asc"
+
+    USERS.sort(key=lambda u: u.total_reactions, reverse=reverse)
+
+    payload = {
+        "users": [
+            {
+                "id": u.id,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "email": u.email,
+                "total_reactions": u.total_reactions,
+            }
+            for u in USERS
+        ]
+    }
+
+    response = Response(
+        json.dumps(payload),
+        mimetype="application/json",
+        status=HTTPStatus.OK,
+    )
+
+    return response
+
+
+@app.get("/users/leaderboard")
+def get_leaderboard():
+    data_type = request.args.get("type")
+
+    if data_type != "graph":
+        return Response("Invalid data type", HTTPStatus.BAD_REQUEST)
+
+
+# <img src="path_to_graph">
