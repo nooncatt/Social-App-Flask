@@ -1,1 +1,1 @@
-from . import users, posts, reactions
+from . import users, posts, reactions, leaderboard

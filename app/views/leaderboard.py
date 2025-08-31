@@ -45,12 +45,12 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
     return response
 
 
-@app.get("/users/leaderboard")
-def get_leaderboard():
-    data_type = request.args.get("type")
-
-    if data_type != "graph":
-        return Response("Invalid data type", HTTPStatus.BAD_REQUEST)
-
+# @app.get("/users/leaderboard")
+# def get_leaderboard():
+#     data_type = request.args.get("type")
+#
+#     if data_type != "graph":
+#         return Response("Invalid data type", HTTPStatus.BAD_REQUEST)
+#
 
 # <img src="path_to_graph">

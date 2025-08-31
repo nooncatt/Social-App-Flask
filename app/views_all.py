@@ -1,6 +1,7 @@
-from . import app
+from . import app, USERS, POSTS
 
 
 @app.route("/")
 def index():
-    return "<h1>Hello world</h1>"
+    response = f"<h1>Hello world</h1>{USERS}<br>{POSTS}<br>"
+    return response
