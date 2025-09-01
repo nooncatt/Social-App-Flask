@@ -48,7 +48,7 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
         fig, ax = plt.subplots(figsize=(8, 4))
 
         reactions_count = [u.total_reactions for u in sorted_users]
-        data_users = [f"{u.first_name} {u.last_name}" for u in sorted_users]
+        data_users = [f"{u.first_name} {u.last_name} ({u.id})" for u in sorted_users]
 
         ax.bar(data_users, reactions_count)
 
