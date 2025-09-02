@@ -38,6 +38,9 @@ class User:
     def change_total_reactions(self, amount):
         self.total_reactions += amount
 
+    def repr(self):
+        return f"{self.id} {self.first_name} {self.last_name}"
+
 
 class Post:
     def __init__(self, id, author_id, text, reactions=None):
@@ -76,3 +79,6 @@ class Post:
 
     def reactions_counter(self):
         return len(self.reactions)
+
+    def repr(self):
+        return f"text:{self.text}, author:{USERS[self.author_id]}, reactions: {[r['reaction'] for r in self.reactions]}"

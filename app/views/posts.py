@@ -73,6 +73,7 @@ def get_user_posts(user_id):
 
     posts = [POSTS[p_id] for p_id in user.posts if models.Post.is_valid_post_id(p_id)]
 
+    # сортируем временную выборку постов - поиск по id не ломается
     posts.sort(key=lambda p: p.reactions_counter(), reverse=reverse)
 
     payload = {

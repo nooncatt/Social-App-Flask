@@ -1,189 +1,128 @@
-# Техническое задание проекта №2
+# Social App (Flask)
 
-Вы - бэкенд-разработчик API для платформы социальной сети для текстовых постов. Вам требуется создать полноценный сервис, который выполняет следующие функции:
+Мини-API социальной сети для текстовых постов: пользователи, посты, реакции и лидерборд.
 
-+ Создает пользователя (проверяет почту на правильность), который может писать посты, ставить реакции (heart, like, dislike, boom, ...) на посты других пользователей
-+ Выдает данные по конкретному пользователю
-+ Создает пост
-+ Выдает данные по конкретному посту
-+ Пользователь ставит реакцию на пост
-+ Выдает все посты пользователя, отсортированные по количеству реакций
-+ Генерирует список пользователей, отсортированный по количеству реакций
-+ Генерирует график пользователей по количеству реакций
+- Полное ТЗ перенесено сюда: **[docs/TECH_SPEC.md](./docs/TECH_SPEC.md)**
 
-Допущения:
+---
 
-- Объекты допустимо хранить в runtime
-- Валидацию правильности почты можно сделать через регулярные выражения, сторонние библиотеки
+## Технологии
 
-Необходимо:
+- Python 3.12
+- Flask
+- email-validator (проверка корректности e-mail)
+- matplotlib (построение графика для лидерборда)
 
-- Код должен быть отформатирован (например, при помощи black)
-- Обработать все частные случаи (пользователя не существует, пользователь с такой почтой уже зарегистрирован и т. д.)
+## Допущения и договорённости
 
-# Запросы и ответы
+- Данные хранятся **в памяти** процесса (runtime). После перезапуска приложения всё обнуляется.
+- `user_id` и `post_id` — это **индексы** в списках `USERS` и `POSTS`. Удаления объектов нет, поэтому индексы стабильны.
+- Один пользователь может оставить **ровно одну** реакцию на каждый пост (реакцию можно **сменить**).
+- **Самолайк** разрешён и учитывается один раз, как и от любого пользователя.
+- Форматирование кода — `black`.
 
-- Создание пользователя `POST /users/create`
+---
 
-Request example:
-```json
-{
-  "first_name": "string",
-  "last_name": "string",
-  "email": "string",
-}
+## Установка и запуск
+
+````
+1) создать и активировать виртуальное окружение
+python -m venv env
+# Windows:
+env\Scripts\activate
+# macOS/Linux:
+# source env/bin/activate
+
+2) установить зависимости
+pip install -r requirements.txt
+
+3) запустить приложение
+python run.py
+# приложение будет доступно на http://127.0.0.1:5000
+````
+
+> Если появится ошибка с отсутствующей библиотекой для графика, убедись что `matplotlib` есть в `requirements.txt` и установлен.
+
+---
+
+## Структура проекта
+
+```
+app/
+  __init__.py        # Flask app, глобальные USERS/POSTS, импорт роутов и моделей
+  models.py          # классы User и Post, валидации, логика реакций
+  views/             # роуты (без blueprints)
+    users.py         # /users/create, /users/<id>, /users/<id>/posts
+    posts.py         # /posts/create, /posts/<id>
+    reactions.py     # /posts/<id>/reaction
+    leaderboard.py   # /users/leaderboard (type=list|graph, sort=asc|desc)
+  static/            # сюда сохраняется PNG графика лидерборда
+docs/
+  TECH_SPEC.md       # полное техническое задание
+run.py               # точка входа приложения
+requirements.txt
 ```
 
-Response example:
-```json
-{
-  "id": "number",
-  "first_name": "string",
-  "last_name": "string",
-  "email": "string",
-  "total_reactions": "number"
-  "posts": []
-}
+---
+
+## Эндпоинты (кратко)
+
+* **POST `/users/create`** — создать пользователя (валидация e-mail).
+
+  * Успех: `201 Created`
+  * Ошибки: `404` (если e-mail невалиден по текущей логике), `409` (такой e-mail уже зарегистрирован)
+
+* **GET `/users/<user_id>`** — получить пользователя.
+
+  * Успех: `200 OK`
+  * Ошибки: `404` (пользователь не найден)
+
+* **POST `/posts/create`** — создать пост.
+
+  * Успех: `201 Created`
+  * Ошибки: `404` (автор не найден), `400` (пустой текст)
+
+* **GET `/posts/<post_id>`** — получить пост.
+
+  * Успех: `200 OK`
+  * Ошибки: `400` (некорректный id поста)
+
+* **POST `/posts/<post_id>/reaction`** — поставить/сменить реакцию.
+
+  * Успех: `204 No Content`
+  * Ошибки: `400` (некорректный id поста или реакция), `404` (пользователь не найден)
+
+* **GET `/users/<user_id>/posts?sort=asc|desc`** — посты пользователя, отсортированные по количеству реакций.
+
+  * Успех: `200 OK`
+  * Ошибки: `400` (неверный параметр `sort`), `404` (пользователь не найден)
+
+* **GET `/users/leaderboard?type=list|graph&sort=asc|desc`** — лидерборд пользователей по сумме полученных реакций.
+
+  * `type=list` → JSON-список
+  * `type=graph` → **HTML с `<img>`**, где `src` указывает на сохранённый PNG в `static/leaderboard_graph.png`
+  * Ошибки: `400` (неверный `type`/`sort`), `404` (нет пользователей)
+
+> Примечание по графику: текущая реализация сохраняет изображение в `app/static/leaderboard_graph.png` и возвращает HTML:
+>
+> ```html
+> <img src="/static/leaderboard_graph.png">
+> ```
+>
+> Это сделано для простоты проверки через браузер/Postman.
+
+---
+
+
+## Полезные команды
+
+```bash
+# форматирование кода
+pip install black
+black .
+
+# обновить requirements.txt по текущему окружению
+pip freeze > requirements.txt
 ```
 
-- Получение данных по определенному пользователю `GET /users/<user_id>`
 
-Response example:
-```json
-{
-  "id": "number",
-  "first_name": "string",
-  "last_name": "string",
-  "email": "string",
-  "total_reactions": "number",
-  "posts": [
-    "number",
-    ...
-  ]
-}
-```
-
-- Создание поста `POST /posts/create`
-
-Request example:
-```json
-{
-  "author_id": "number",
-  "text": "string",
-}
-```
-
-Response example:
-```json
-{
-  "id": "number",
-  "author_id": "number",
-  "text": "string",
-  "reactions": [
-  	"string",
-    ...
-  ] 
-}
-```
-
-- Получение данных по определенному посту `GET /posts/<post_id>`
-
-Response example:
-```json
-{
-  "id": "number",
-  "author_id": "number",
-  "text": "string",
-  "reactions": [
-  	"string",
-    ...
-  ] 
-}
-```
-
-- Поставить реакцию посту `POST /posts/<post_id>/reaction`
-
-Request example:
-```json
-{
-  "user_id": "number",
-  "reaction": "string"
-}
-```
-
-Response example: (пусто, только код ответа)
-
-- Получение всех постов пользователя, отсортированных по количеству реакций `GET /users/<user_id>/posts`
-
-Значение `asc` обозначет `ascending` (по возрастанию), параметр `desc` обозначет `descending` (по убыванию)
-
-Request example:
-```json
-{
-  "sort": "asc/desc"
-}
-```
-
-Response example:
-```json
-{
-	"posts": [
-    	{
-  			"id": "number",
-  			"author_id": "string",
-  			"text": "string",
-  			"reactions": [
-  				"string",
-    			...
-  			] 
-  		},
-        {
-        	...
-        }
-    ]
-}
-```
-
-- Получение всех пользователей, отсортированных по количеству реакций `GET /users/leaderboard`
-
-Значение `asc` обозначет `ascending` (по возрастанию), параметр `desc` обозначет `descending` (по убыванию)
-
-Request example:
-```json
-{
-  "type": "list",
-  "sort": "asc/desc"
-}
-```
-
-Response example:
-```json
-{
-	"users": [
-    	{
-          "id": "number",
-          "first_name": "string",
-          "last_name": "string",
-          "email": "string",
-          "total_reactions": "number"
-		},
-        {
-        	...
-        }
-    ]
-}
-```
-
-- Получение графика пользователей по количеству реакций `GET /users/leaderboard`
-
-Request example:
-```json
-{
-  "type": "graph",
-}
-```
-
-Response example:
-```html
-<img src="path_to_graph">
-```
