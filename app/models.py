@@ -39,7 +39,7 @@ class User:
         self.total_reactions += amount
 
     def repr(self):
-        return f"{self.id} {self.first_name} {self.last_name}"
+        return f"({self.id}) {self.first_name} {self.last_name}"
 
 
 class Post:
@@ -81,4 +81,7 @@ class Post:
         return len(self.reactions)
 
     def repr(self):
-        return f"text:{self.text}, author:{USERS[self.author_id]}, reactions: {[r['reaction'] for r in self.reactions]}"
+        return (
+            f"text: {self.text}, author: {USERS[self.author_id].first_name} {USERS[self.author_id].last_name} "
+            f"({USERS[self.author_id].id}), reactions: {[r['reaction'] for r in self.reactions]}"
+        )
