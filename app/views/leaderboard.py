@@ -1,4 +1,4 @@
-from .. import app, USERS
+from .. import app, USERS, models
 from flask import request, Response, url_for
 from http import HTTPStatus
 import json
@@ -32,7 +32,7 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
                     "email": u.email,
                     "total_reactions": u.total_reactions,
                 }
-                for u in sorted_users
+                for u in sorted_users if models.User.is_valid_id(u.id)
             ]
         }
 
@@ -47,8 +47,8 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
     elif data_type == "graph":
         fig, ax = plt.subplots(figsize=(8, 4))
 
-        reactions_count = [u.total_reactions for u in sorted_users]
-        data_users = [f"{u.first_name} {u.last_name} ({u.id})" for u in sorted_users]
+        reactions_count = [u.total_reactions for u in sorted_users if models.User.is_valid_id(u.id)]
+        data_users = [f"{u.first_name} {u.last_name} ({u.id})" for u in sorted_users if models.User.is_valid_id(u.id)]
 
         ax.bar(data_users, reactions_count)
 

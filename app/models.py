@@ -9,10 +9,11 @@ class User:
         self.email = email
         self.posts = [] if posts is None else posts
         self.total_reactions = total_reactions  # total_reactions у пользователя = сколько реакций ПОЛУЧИЛИ все его посты от других пользователей.
+        self.status = "created"
 
     @staticmethod
     def is_valid_id(user_id):
-        return isinstance(user_id, int) and 0 <= user_id < len(USERS)
+        return isinstance(user_id, int) and 0 <= user_id < len(USERS) and USERS[user_id].status == "created"
 
     @staticmethod
     def check_email_validity(email):
@@ -39,7 +40,10 @@ class User:
         self.total_reactions += amount
 
     def repr(self):
-        return f"({self.id}) {self.first_name} {self.last_name}"
+        if self.status == "created":
+            return f"({self.id}) {self.first_name} {self.last_name}"
+        else:
+            return "DELETED"
 
 
 class Post:
@@ -48,10 +52,11 @@ class Post:
         self.author_id = author_id
         self.text = text
         self.reactions = [] if reactions is None else reactions
+        self.status = "created"
 
     @staticmethod
     def is_valid_post_id(post_id):
-        return isinstance(post_id, int) and 0 <= post_id < len(POSTS)
+        return isinstance(post_id, int) and 0 <= post_id < len(POSTS) and POSTS[post_id].status == "created"
 
     def add_or_update_reaction(self, user_id, reaction):
         reaction = str(reaction).lower()
@@ -81,7 +86,10 @@ class Post:
         return len(self.reactions)
 
     def repr(self):
-        return (
-            f"text: {self.text}, author: {USERS[self.author_id].first_name} {USERS[self.author_id].last_name} "
-            f"({USERS[self.author_id].id}), reactions: {[r['reaction'] for r in self.reactions]}"
-        )
+        if self.status == "created":
+            return (
+                f"text: {self.text}, author: {USERS[self.author_id].first_name} {USERS[self.author_id].last_name} "
+                f"({USERS[self.author_id].id}), reactions: {[r['reaction'] for r in self.reactions]}"
+            )
+        else:
+            return "DELETED"

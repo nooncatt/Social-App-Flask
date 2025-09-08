@@ -48,6 +48,7 @@ def get_post(post_id):
                 "author_id": post.author_id,
                 "text": post.text,
                 "reactions": [r["reaction"] for r in post.reactions],
+                "status": post.status,
             }
         ),
         mimetype="application/json",
@@ -94,4 +95,27 @@ def get_user_posts(user_id):
         status=HTTPStatus.OK,
     )
 
+    return response
+
+
+@app.delete("/posts/<int:post_id>")
+def delete_post(post_id):
+    if not models.Post.is_valid_post_id(post_id):
+        return Response("Invalid post id", HTTPStatus.BAD_REQUEST)
+    post = POSTS[post_id]
+    post.status = "deleted"
+
+    response = Response(
+        json.dumps(
+            {
+                "id": post.id,
+                "author_id": post.author_id,
+                "text": post.text,
+                "reactions": [r["reaction"] for r in post.reactions],
+                "status": post.status,
+            }
+        ),
+        mimetype="application/json",
+        status=HTTPStatus.OK,
+    )
     return response
