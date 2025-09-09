@@ -1,13 +1,7 @@
-import requests
 from http import HTTPStatus
 from uuid import uuid4
-
-def create_user_payload():
-    return {
-        "first_name": "Vasya" + str(uuid4()),
-        "last_name": "Pypkin" + str(uuid4()),
-        "email": f"vasya{uuid4()}@gmail.com",
-    }
+from app.tests.test_users import create_user_payload
+from app.tests.test_posts import create_post_payload
 
 
 def test_get_users_sorted_leaderboard(client):
@@ -22,8 +16,3 @@ def test_get_users_sorted_leaderboard(client):
     assert "users" in data
     assert isinstance(data["users"], list)
     assert len(data["users"]) == 3
-
-
-
-
-

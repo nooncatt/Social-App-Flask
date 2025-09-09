@@ -1,89 +1,145 @@
 from http import HTTPStatus
-from uuid import uuid4
 from faker import Faker
-import random
 from app.tests.test_users import create_user_payload
+import pytest
 
 fake = Faker("ru_RU")
 
 
-def create_post_payload():
+def create_post_payload(author_id):
     return {
-        "author_id": 0, # random.randint(0, 3), # number of created users
+        "author_id": author_id,
         "text": f"{fake.sentence()}",
     }
 
+
 def test_create_post(client):
     # create user
-    payload = create_user_payload()
-    response = client.post("/users/create", json=payload)
-    assert response.status_code == HTTPStatus.CREATED
+    user_payload = create_user_payload()
+    user_resp = client.post("/users/create", json=user_payload)
+    assert user_resp.status_code == HTTPStatus.CREATED
+    user_id = user_resp.get_json()["id"]
 
     # create test post
-    payload = create_post_payload()
-    r = client.post("/posts/create", json=payload)
+    post_payload = create_post_payload(user_id)
+    r = client.post("/posts/create", json=post_payload)
     assert r.status_code == HTTPStatus.CREATED
-
     data = r.get_json()
-    assert data["author_id"] == payload["author_id"]
-    assert data["text"] == payload["text"]
+    assert data["author_id"] == post_payload["author_id"]
+    assert data["text"] == post_payload["text"]
+    assert r.get_json()["reactions"] == []
 
     post_id = data["id"]
 
     # get test post by id
     r_get = client.get(f"/posts/{post_id}")
 
-    assert r_get.get_json()["author_id"] == payload["author_id"]
-    assert r_get.get_json()["text"] == payload["text"]
+    assert r_get.get_json()["author_id"] == post_payload["author_id"]
+    assert r_get.get_json()["text"] == post_payload["text"]
 
 
 def test_create_post_wrong_data(client):
     # create user
-    payload = create_user_payload()
-    response = client.post("/users/create", json=payload)
-    assert response.status_code == HTTPStatus.CREATED
+    user_payload = create_user_payload()
+    user_resp = client.post("/users/create", json=user_payload)
+    assert user_resp.status_code == HTTPStatus.CREATED
+    user_id = user_resp.get_json()["id"]
 
-    payload = create_post_payload()
-    payload["text"] = "" # wrong payload
+    post_payload = create_post_payload(user_id)
+    post_payload["text"] = ""  # wrong payload
 
     # create post
-    r = client.post("/posts/create", json=payload)
+    r = client.post("/posts/create", json=post_payload)
     assert r.status_code == HTTPStatus.BAD_REQUEST
 
 
-def get_user_posts(client):
-    # create user with id 0
-    payload = create_user_payload()
-    response = client.post("/users/create", json=payload)
-    assert response.status_code == HTTPStatus.CREATED
+def test_create_post_author_not_found(client):
+    payload = create_post_payload(999)
+    r = client.post("/posts/create", json=payload)
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_get_post_invalid_id(client):
+    r = client.get("/posts/9999")
+    assert r.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_get_user_posts(client):
+    # create user
+    user_payload = create_user_payload()
+    user_resp = client.post("/users/create", json=user_payload)
+    assert user_resp.status_code == HTTPStatus.CREATED
+    user_id = user_resp.get_json()["id"]
 
     # create some posts
     for _ in range(3):
-        payload = create_post_payload()
-        r = client.post("/posts/create", json=payload)
+        post_payload = create_post_payload(user_id)
+        r = client.post("/posts/create", json=post_payload)
         assert r.status_code == HTTPStatus.CREATED
 
-    user_id = response.get_json()["id"]
-    r = client.get(f"/users/{user_id}/posts?sort=asc")
+    r = client.get(f"/users/{user_id}/posts", query_string={"sort": "asc"})
     user_posts_data = r.get_json()
-
-    # todo: check убывание number of reactions ? но реакции еще не созданы ЧД?
-    assert user_posts_data["text"] == payload["text"] # todo: check работает ли
-    # assert user_posts_data["reactions"] =
-
-
-'''
-def test_delete_user(client):
-    payload = create_user_payload()
-    r = client.post("/users/create", json=payload)
-    assert r.status_code == HTTPStatus.CREATED
-
-    user_id = r.get_json()["id"]
-    deleted_user = client.delete(f"/users/{user_id}")
-    assert deleted_user.status_code == HTTPStatus.OK
-    assert deleted_user.get_json()["status"] == "deleted"
-'''
+    assert isinstance(user_posts_data, dict)
+    assert "posts" in user_posts_data
+    posts = user_posts_data["posts"]
+    assert isinstance(posts, list)
+    assert len(posts) == 3
+    assert all(item["author_id"] == user_id for item in posts)
 
 
+@pytest.mark.parametrize("order, reverse", [("asc", False), ("desc", True)])
+def test_get_user_posts_sorted_by_reactions(client, order, reverse):
+    # create users
+    user_id = client.post("/users/create", json=create_user_payload()).get_json()["id"]
+    user_id1 = client.post("/users/create", json=create_user_payload()).get_json()["id"]
+    user_id2 = client.post("/users/create", json=create_user_payload()).get_json()["id"]
+
+    # create some posts
+    post_id1 = client.post(
+        "/posts/create", json=create_post_payload(user_id)
+    ).get_json()["id"]
+    post_id2 = client.post(
+        "/posts/create", json=create_post_payload(user_id)
+    ).get_json()["id"]
+    post_id3 = client.post(
+        "/posts/create", json=create_post_payload(user_id)
+    ).get_json()["id"]
+
+    client.post(
+        f"/posts/{post_id1}/reaction", json={"user_id": user_id1, "reaction": "wow"}
+    )
+    client.post(
+        f"/posts/{post_id1}/reaction", json={"user_id": user_id1, "reaction": "wow"}
+    )
+    client.post(
+        f"/posts/{post_id1}/reaction", json={"user_id": user_id2, "reaction": "wow"}
+    )
+
+    r = client.get(f"/users/{user_id}/posts", query_string={"sort": order})
+    assert r.status_code == HTTPStatus.OK
+    posts = r.get_json()["posts"]
+    counts = [len(p["reactions"]) for p in posts]
+    assert counts == sorted(counts, reverse=reverse)
 
 
+def test_delete_post(client):
+    # create user
+    user_payload = create_user_payload()
+    user_resp = client.post("/users/create", json=user_payload)
+    assert user_resp.status_code == HTTPStatus.CREATED
+    user_id = user_resp.get_json()["id"]
+
+    # create test post
+    post_payload = create_post_payload(user_id)
+    r_post = client.post("/posts/create", json=post_payload)
+    assert r_post.status_code == HTTPStatus.CREATED
+
+    post_id = r_post.get_json()["id"]
+
+    r_delete = client.delete(f"/posts/{post_id}")
+    assert r_delete.status_code == HTTPStatus.OK
+
+    assert r_delete.get_json()["id"] == post_id
+    assert r_delete.get_json()["author_id"] == post_payload["author_id"]
+    assert r_delete.get_json()["text"] == post_payload["text"]
+    assert r_delete.get_json()["status"] == "deleted"
