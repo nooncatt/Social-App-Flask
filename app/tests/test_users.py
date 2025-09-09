@@ -1,16 +1,6 @@
-import requests
 from http import HTTPStatus
-from uuid import uuid4
+from app.tests.factories import create_user_payload
 
-from http import HTTPStatus
-from uuid import uuid4
-
-def create_user_payload():
-    return {
-        "first_name": "Vasya" + str(uuid4()),
-        "last_name": "Pypkin" + str(uuid4()),
-        "email": f"vasya{uuid4()}@gmail.com",
-    }
 
 def test_user_create(client):
     payload = create_user_payload()
@@ -31,6 +21,7 @@ def test_user_create(client):
     assert got["last_name"] == payload["last_name"]
     assert got["email"] == payload["email"]
 
+
 def test_user_create_wrong_data(client):
     payload = create_user_payload()
     payload["email"] = "vasyagmail.com"
@@ -47,7 +38,3 @@ def test_delete_user(client):
     deleted_user = client.delete(f"/users/{user_id}")
     assert deleted_user.status_code == HTTPStatus.OK
     assert deleted_user.get_json()["status"] == "deleted"
-
-
-
-

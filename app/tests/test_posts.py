@@ -1,16 +1,6 @@
 from http import HTTPStatus
-from faker import Faker
-from app.tests.test_users import create_user_payload
+from app.tests.factories import create_user_payload, create_post_payload
 import pytest
-
-fake = Faker("ru_RU")
-
-
-def create_post_payload(author_id):
-    return {
-        "author_id": author_id,
-        "text": f"{fake.sentence()}",
-    }
 
 
 def test_create_post(client):

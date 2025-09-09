@@ -32,7 +32,8 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
                     "email": u.email,
                     "total_reactions": u.total_reactions,
                 }
-                for u in sorted_users if models.User.is_valid_id(u.id)
+                for u in sorted_users
+                if models.User.is_valid_id(u.id)
             ]
         }
 
@@ -45,10 +46,16 @@ def get_users_sorted_leaderboard():  # asc - по возрастанию, desc -
         return response
 
     elif data_type == "graph":
-        fig, ax = plt.subplots(figsize=(8, 4))
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-        reactions_count = [u.total_reactions for u in sorted_users if models.User.is_valid_id(u.id)]
-        data_users = [f"{u.first_name} {u.last_name} ({u.id})" for u in sorted_users if models.User.is_valid_id(u.id)]
+        reactions_count = [
+            u.total_reactions for u in sorted_users if models.User.is_valid_id(u.id)
+        ]
+        data_users = [
+            f"{u.first_name} {u.last_name} ({u.id})"
+            for u in sorted_users
+            if models.User.is_valid_id(u.id)
+        ]
 
         ax.bar(data_users, reactions_count)
 

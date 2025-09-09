@@ -1,17 +1,10 @@
 from app import POSTS
-from app.tests.test_users import create_user_payload
-from app.tests.test_posts import create_post_payload
-import random
+from app.tests.factories import (
+    create_user_payload,
+    create_post_payload,
+    create_react_payload,
+)
 from http import HTTPStatus
-
-
-def create_react_payload(user_id):
-    return {
-        "user_id": user_id,
-        "reaction": random.choice(
-            ["heart", "like", "dislike", "boom", "angry", "haha", "wow"]
-        ),
-    }
 
 
 def test_add_reaction(client):
