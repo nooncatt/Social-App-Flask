@@ -1,8 +1,7 @@
 from http import HTTPStatus
 import pytest
-from uuid import uuid4
+import os
 from app.tests.test_users import create_user_payload
-from app.tests.test_posts import create_post_payload
 
 
 @pytest.mark.parametrize(
@@ -25,4 +24,13 @@ def test_get_users_sorted_leaderboard(client, leaderboard_type, sort_type):
 
     elif leaderboard_type == "graph":
         assert r.status_code == HTTPStatus.OK
-        data = r.get_json()
+
+        # check that response have <img> in HTML
+        html_content = r.get_data(as_text=True)
+        assert "<img src=" in html_content
+
+        # check that img file is in static catalog
+        image_path = "app/static/leaderboard_graph.png"
+        assert os.path.exists(
+            image_path
+        ), f"Expected image at {image_path}, but it does not exist"
